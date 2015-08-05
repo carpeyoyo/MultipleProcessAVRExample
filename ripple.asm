@@ -9,13 +9,15 @@
 ; Jump Table
 rjmp reset
 .org OC1Aaddr
-rjmp send_out
+rjmp scheduler
 
 ; Variable defintions, small enough to act like registers are variables.
 .def offset = r16
-.def count2 = r17 ; two values used for time wasting count
-.def led = r19 ; used for loading led value to port
-.def temp = r20 ; used for stack intialization
+.def count1 = r17
+.def count2 = r18
+.def count3 = r19
+.def led = r20 ; used for loading led value to port
+.def temp = r21 ; used for stack intialization
 
 reset:
 	; Setting output port
@@ -119,8 +121,11 @@ reset:
 	sei
 
 main:
-	nop
+	rcall send_out
 	rjmp main
+
+scheduler: ; this is called by the timer interrupt
+	reti
 
 send_out:
 	; retrieving base address
@@ -135,6 +140,30 @@ send_out:
 	ld led,Y
 	out PORTB,led
 
+	; wasting time
+	clr count1
+	clr count2
+	clr count3
+	
+	send_out_loop_1:
+		send_out_loop_2:
+			send_out_loop_3:
+				inc count3
+				cpi count3,0x00
+				breq send_out_loop_3_end
+				rjmp send_out_loop_3
+			send_out_loop_3_end:
+			inc count2
+			cpi count2,0x00
+			breq send_out_loop_2_end
+			rjmp send_out_loop_2
+		send_out_loop_2_end:
+		inc count1
+		cpi count1,0x03
+		breq send_out_loop_1_end
+		rjmp send_out_loop_1
+	send_out_loop_1_end:
+
 	; finding next offset
 	inc XL
 	cpi XL,0x0a
@@ -142,6 +171,6 @@ send_out:
 	clr XL
 
 	send_out_end:
-	reti
+	ret
 
 
