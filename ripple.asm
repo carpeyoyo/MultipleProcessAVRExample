@@ -18,11 +18,14 @@ rjmp scheduler
 .def count3 = r19
 .def led = r20 ; used for loading led value to port
 .def temp = r21 ; used for stack intialization
+.def temp2 = r22
+.def temp3 = r23
 
 reset:
-	; Setting output port
+	; Setting output ports
 	ldi led,0xFF  
 	out ddrb,led
+	out ddrd,led
 
 	; Intializing stack.
 	ldi temp,low(RAMEND)
@@ -114,6 +117,10 @@ reset:
 
 	clr XL
 
+	; tempary bit flip
+	clr temp2
+	ldi temp3,0x01
+
 	;ldi led,0xff
 	;out PORTB,led
 
@@ -125,7 +132,16 @@ main:
 	rjmp main
 
 scheduler: ; this is called by the timer interrupt
-	reti
+	push temp
+	in temp,SREG
+
+	eor temp2,temp3
+	out PORTD,temp2
+
+	out SREG,temp
+	pop temp
+	sei 
+	ret
 
 send_out:
 	; retrieving base address
@@ -169,7 +185,6 @@ send_out:
 	cpi XL,0x0a
 	brne send_out_end
 	clr XL
-
 	send_out_end:
 	ret
 
