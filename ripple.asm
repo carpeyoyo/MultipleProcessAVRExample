@@ -32,12 +32,6 @@ reset:
 	temp_stack: .byte 50
 	.cseg
 
-	; Intializing stack.
-	ldi temp,low( (temp_stack + 50) )
-	out SPL,temp
-	ldi temp,high( (temp_stack + 50) )
-	out SPH,temp
-
 	; Configuring timer interrupt
 
 	.equ PRESCALE=0b101
@@ -66,68 +60,57 @@ reset:
 	.dseg
 	lights: .byte 10
 	.cseg
-	clr XH
-	clr XL
-	ldi YH, high(lights)
-	ldi YL, low(lights)
+
+	ldi temp,low( (lights + 9) )
+	out SPL,temp
+	ldi temp,high( (lights + 9) )
+	out SPH,temp
 	
+	; These will really be in backwards order
+	; but it does not really matter
 	ldi temp,0b00000001 ; first
-	st Y,temp
+	push temp
 
 	ldi temp,0b00000010 ; second
-	inc XL
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00000100 ; third
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00001000 ; fourth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00010000 ; fifth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00100000 ; sixth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00010000 ; seventh
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00001000 ; eighth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00000100 ; ninth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
+	push temp
 
 	ldi temp,0b00000010 ; tenth
-	add YL,XL
-	adc YH,XH
-	st Y,temp
-
-	clr XL
+	push temp
 
 	; tempary bit flip
 	clr temp2
 	ldi temp3,0x01
 
-	;ldi led,0xff
-	;out PORTB,led
+	; clearing these registers for now
+	clr XH
+	clr XL
+
+	; Intializing stack.
+	ldi temp,low( (temp_stack + 49) )
+	out SPL,temp
+	ldi temp,high( (temp_stack + 49) )
+	out SPH,temp
 
 	; enable global interrupts
 	sei
