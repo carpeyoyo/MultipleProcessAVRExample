@@ -27,10 +27,15 @@ reset:
 	out ddrb,led
 	out ddrd,led
 
+	; tempary stack sort of
+	.dseg
+	temp_stack: .byte 50
+	.cseg
+
 	; Intializing stack.
-	ldi temp,low(RAMEND)
+	ldi temp,low( (temp_stack + 50) )
 	out SPL,temp
-	ldi temp,high(RAMEND)
+	ldi temp,high( (temp_stack + 50) )
 	out SPH,temp
 
 	; Configuring timer interrupt
