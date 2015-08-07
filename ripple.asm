@@ -102,6 +102,7 @@ reset:
 
 	; Setting intial properites for process
 	; set up first process last so right stack is in place
+	rcall send_out_portd_init
 	rcall send_out_init
 
 	; entering scheduler in correct place
@@ -129,13 +130,23 @@ scheduler: ; this is called by the timer interrupt
 
 	; first process
 	rcall send_out_setup
+	rcall scheduler_go_again
 	rcall send_out_cleanup
+
+	; second process
+	rcall send_out_portd_setup
+	rcall send_out_portd_cleanup
 
 	rjmp scheduler_entrance
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The following functions are for the the send out to port b process.
+
+scheduler_go_again:
+	pop ZH
+	pop ZL
+	reti
 
 send_out_init:
 
@@ -294,5 +305,166 @@ send_out:
 	brne send_out
 	clr XL
 	rjmp send_out
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The following functions are for the the send out to port d process.
+
+send_out_portd_init:
+
+	pop ZH ; these are used to return at end of function
+	pop ZL
+
+	.equ stack_size_portd = 50
+	; tempary stack sort of
+	.dseg
+	temp_stack_portd: .byte stack_size_portd
+	.cseg
+
+	; Intializing stack this stack
+	ldi temp,low((temp_stack_portd + (stack_size_portd -1)))
+	out SPL,temp
+	ldi temp,high((temp_stack_portd + (stack_size_portd -1)))
+	out SPH,temp
+
+	; first thing on stack in address of send_out_portd
+	ldi temp,low(send_out_portd)
+	push temp
+	ldi temp,high(send_out_portd)
+	push temp
+	
+	; creating initial values
+	clr XL
+	clr XH
+
+	; getting current sreg
+	in temp,SREG
+
+	; setting up initial stack
+	push temp ; for sreg
+	push YH
+	push YL
+	push XL
+	push XH
+	push led
+	push count1
+	push count2
+	push count3
+
+	; storing stack location
+	.dseg
+	temp_stack_portd_address: .byte 2
+	.cseg
+
+	ldi YL,low(temp_stack_portd_address)
+	ldi YH,high(temp_stack_portd_address)
+
+	in temp,SPL
+	st Y+,temp
+	in temp,SPH
+	st Y,temp
+
+	ijmp
+
+send_out_portd_setup:
+	pop ZH ; these will be for the scheduler
+	pop ZL
+
+	; retrieve stack address
+	ldi YL,low(temp_stack_portd_address)
+	ldi YH,high(temp_stack_portd_address)
+
+	; setting stack pointer back to last position
+	ld temp,Y+
+	out SPL,temp
+	ld temp,Y
+	out SPH,temp	
+
+	; retrieving variables
+	pop count3
+	pop count2
+	pop count1
+	pop led
+	pop XH
+	pop XL
+	pop YL
+	pop YH
+	pop temp ; for SREG
+
+	; setting SREG
+	out SREG,temp
+
+	;returning to last address on stack
+	reti
+
+send_out_portd_cleanup:
+	; these will be used to go back to scheduler
+	; at the end of this function
+	pop ZH
+	pop ZL
+
+	push temp ; should contain SREG
+	push YH
+	push YL
+	push XL
+	push XH
+	push led
+	push count1
+	push count2
+	push count3
+
+	; storing stack address
+	ldi YL,low(temp_stack_portd_address)
+	ldi YH,high(temp_stack_portd_address)
+
+	in temp,SPL
+	st Y+,temp
+	in temp,SPH
+	st Y,temp
+
+	ijmp ; jump back to place in scheduler
+
+send_out_portd:
+	; retrieving base address
+	ldi YH, high(lights)
+	ldi YL, low(lights)
+
+	; finding offset
+	add YL,XL
+	adc YH,XH
+
+	; outputting state
+	ld led,Y
+	out PORTD,led
+
+	; wasting time
+	clr count1
+	clr count2
+	clr count3
+	
+	send_out_portd_loop_1:
+		send_out_portd_loop_2:
+			send_out_portd_loop_3:
+				inc count3
+				cpi count3,0x00
+				breq send_out_portd_loop_3_end
+				rjmp send_out_portd_loop_3
+			send_out_portd_loop_3_end:
+			inc count2
+			cpi count2,0x00
+			breq send_out_portd_loop_2_end
+			rjmp send_out_portd_loop_2
+		send_out_portd_loop_2_end:
+		inc count1
+		cpi count1,0x03
+		breq send_out_portd_loop_1_end
+		rjmp send_out_portd_loop_1
+	send_out_portd_loop_1_end:
+
+	; finding next offset
+	inc XL
+	cpi XL,0x0a
+	brne send_out_portd
+	clr XL
+	rjmp send_out_portd
 
 
