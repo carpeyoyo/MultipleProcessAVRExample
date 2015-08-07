@@ -61,42 +61,38 @@ reset:
 	lights: .byte 10
 	.cseg
 
-	ldi temp,low( (lights + 9) )
-	out SPL,temp
-	ldi temp,high( (lights + 9) )
-	out SPH,temp
+	ldi YL,low(lights)
+	ldi YH,high(lights)
 	
-	; These will really be in backwards order
-	; but it does not really matter
 	ldi temp,0b00000001 ; first
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00000010 ; second
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00000100 ; third
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00001000 ; fourth
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00010000 ; fifth
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00100000 ; sixth
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00010000 ; seventh
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00001000 ; eighth
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00000100 ; ninth
-	push temp
+	st Y+,temp
 
 	ldi temp,0b00000010 ; tenth
-	push temp
+	st Y+,temp
 
 	; tempary bit flip
 	clr temp2
@@ -116,7 +112,12 @@ reset:
 	sei
 
 main:
-	rcall send_out
+	; replacing rcall for a test
+	
+	ldi ZL,low(send_out)
+	ldi ZH,high(send_out)
+	icall 
+
 	rjmp main
 
 scheduler: ; this is called by the timer interrupt
@@ -129,6 +130,12 @@ scheduler: ; this is called by the timer interrupt
 	out SREG,temp
 	pop temp
 	sei 
+	ret
+
+send_out_init:
+	clr count1
+	clr count2
+	clr count3
 	ret
 
 send_out:
