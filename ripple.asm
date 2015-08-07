@@ -36,10 +36,10 @@ reset:
 
 	; Configuring timer interrupt
 
-	.equ PRESCALE=0b101
+	.equ PRESCALE=0b100
 	.equ PRESCALE_DIV=1
 	.equ WGM=0b011
-	.equ TOP = 65535
+	.equ TOP = 5000
 	.if TOP>65535
 	.error "Top is out of range"
 	.endif
@@ -294,7 +294,7 @@ send_out:
 			rjmp send_out_loop_2
 		send_out_loop_2_end:
 		inc count1
-		cpi count1,0x03
+		cpi count1,0x01
 		breq send_out_loop_1_end
 		rjmp send_out_loop_1
 	send_out_loop_1_end:
@@ -455,7 +455,7 @@ send_out_portd:
 			rjmp send_out_portd_loop_2
 		send_out_portd_loop_2_end:
 		inc count1
-		cpi count1,0x03
+		cpi count1,0x01
 		breq send_out_portd_loop_1_end
 		rjmp send_out_portd_loop_1
 	send_out_portd_loop_1_end:
