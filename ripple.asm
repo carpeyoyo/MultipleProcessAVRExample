@@ -102,24 +102,33 @@ reset:
 	; Setting intial properites for process
 	; set up first process last so right stack is in place
 	rcall send_out_init
-	rcall send_out_setup
 
-	;rjmp first_process
+	; entering scheduler in correct place
+	rjmp scheduler_entrance
 
 scheduler: ; this is called by the timer interrupt
 
 	in temp,SREG
 
+	; creating blink
 	eor temp2,temp3
 	out PORTD,temp2
 
-	out SREG,temp
+	; going to correct place in this scheduler
+	ijmp ; going to value stored in last init
 
-	reti
+	; actual scheduling
+	scheduler_entrance:
+
+	; first process
+	rcall send_out_setup
+	rcall send_out_cleanup
+
+	rjmp scheduler_entrance
 
 send_out_init:
 
-	pop ZH
+	pop ZH ; these are used to return at end of function
 	pop ZL
 
 	.equ stack_size = 50
@@ -203,6 +212,33 @@ send_out_setup:
 
 	;returning to last address on stack
 	reti
+
+send_out_cleanup:
+	; these will be used to go back to scheduler
+	; at the end of this function
+	pop ZH
+	pop ZL
+
+	push temp ; should contain SREG
+	push YH
+	push YL
+	push XL
+	push XH
+	push led
+	push count1
+	push count2
+	push count3
+
+	; storing stack address
+	ldi YL,low(temp_stack_address)
+	ldi YH,high(temp_stack_address)
+
+	in temp,SPL
+	st Y+,temp
+	in temp,SPH
+	st Y,temp
+
+	ijmp ; jump back to place in scheduler
 
 send_out:
 	; retrieving base address
