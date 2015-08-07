@@ -27,10 +27,11 @@ reset:
 	out ddrb,led
 	out ddrd,led
 
-	; tempary stack sort of
-	.dseg
-	temp_stack: .byte 50
-	.cseg
+	; Real stack, not really used during actual program. 
+	ldi temp,low(RAMEND)
+	out SPL,temp
+	ldi temp,high(RAMEND)
+	out SPH,temp
 
 	; Configuring timer interrupt
 
@@ -98,45 +99,110 @@ reset:
 	clr temp2
 	ldi temp3,0x01
 
-	; clearing these registers for now
-	clr XH
-	clr XL
+	; Setting intial properites for process
+	; set up first process last so right stack is in place
+	rcall send_out_init
+	rcall send_out_setup
 
-	; Intializing stack.
-	ldi temp,low( (temp_stack + 49) )
-	out SPL,temp
-	ldi temp,high( (temp_stack + 49) )
-	out SPH,temp
-
-	; enable global interrupts
-	sei
-
-main:
-	; replacing rcall for a test
-	
-	ldi ZL,low(send_out)
-	ldi ZH,high(send_out)
-	icall 
-
-	rjmp main
+	;rjmp first_process
 
 scheduler: ; this is called by the timer interrupt
-	push temp
+
 	in temp,SREG
 
 	eor temp2,temp3
 	out PORTD,temp2
 
 	out SREG,temp
-	pop temp
-	sei 
-	ret
+
+	reti
 
 send_out_init:
-	clr count1
-	clr count2
-	clr count3
-	ret
+
+	pop ZH
+	pop ZL
+
+	.equ stack_size = 50
+	; tempary stack sort of
+	.dseg
+	temp_stack: .byte stack_size
+	.cseg
+
+	; Intializing stack this stack
+	ldi temp,low((temp_stack + (stack_size -1)))
+	out SPL,temp
+	ldi temp,high((temp_stack + (stack_size -1)))
+	out SPH,temp
+
+	; first thing on stack in address of sendout
+	ldi temp,low(send_out)
+	push temp
+	ldi temp,high(send_out)
+	push temp
+	
+	; creating initial values
+	clr XL
+	clr XH
+
+	; getting current sreg
+	in temp,SREG
+
+	; setting up initial stack
+	push temp ; for sreg
+	push YH
+	push YL
+	push XL
+	push XH
+	push led
+	push count1
+	push count2
+	push count3
+
+	; storing stack location
+	.dseg
+	temp_stack_address: .byte 2
+	.cseg
+
+	ldi YL,low(temp_stack_address)
+	ldi YH,high(temp_stack_address)
+
+	in temp,SPL
+	st Y+,temp
+	in temp,SPH
+	st Y,temp
+
+	ijmp
+
+send_out_setup:
+	pop ZH ; these will be for the scheduler
+	pop ZL
+
+	; retrieve stack address
+	ldi YL,low(temp_stack_address)
+	ldi YH,high(temp_stack_address)
+
+	; setting stack pointer back to last position
+	ld temp,Y+
+	out SPL,temp
+	ld temp,Y
+	out SPH,temp	
+
+	; retrieving variables
+	pop count3
+	pop count2
+	pop count1
+	pop led
+	pop XH
+	pop XL
+	pop YL
+	pop YH
+	pop temp ; for SREG
+
+	; setting SREG
+	out SREG,temp
+
+	;returning to last address on stack
+	reti
 
 send_out:
 	; retrieving base address
@@ -178,9 +244,8 @@ send_out:
 	; finding next offset
 	inc XL
 	cpi XL,0x0a
-	brne send_out_end
+	brne send_out
 	clr XL
-	send_out_end:
-	ret
+	rjmp send_out
 
 
