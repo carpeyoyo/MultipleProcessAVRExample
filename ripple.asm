@@ -26,6 +26,7 @@ reset:
 	ldi led,0xFF  
 	out ddrb,led
 	out ddrd,led
+	out ddra,led
 
 	; Real stack, not really used during actual program. 
 	ldi temp,low(RAMEND)
@@ -109,10 +110,16 @@ reset:
 scheduler: ; this is called by the timer interrupt
 
 	in temp,SREG
-
+	
 	; creating blink
+	push temp2
+	push temp3
+	in temp2,PORTA
+	ldi temp3,0x01
 	eor temp2,temp3
-	out PORTD,temp2
+	out PORTA,temp2
+	pop temp3
+	pop temp2
 
 	; going to correct place in this scheduler
 	ijmp ; going to value stored in last init
@@ -125,6 +132,10 @@ scheduler: ; this is called by the timer interrupt
 	rcall send_out_cleanup
 
 	rjmp scheduler_entrance
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The following functions are for the the send out to port b process.
 
 send_out_init:
 
