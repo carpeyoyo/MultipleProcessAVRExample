@@ -28,7 +28,8 @@ reset:
 	out ddrd,led
 	out ddra,led
 
-	; Real stack, not really used during actual program. 
+	; Real stack, not really used during actual program.
+	; Only used to call the first process init
 	ldi temp,low(RAMEND)
 	out SPL,temp
 	ldi temp,high(RAMEND)
@@ -57,7 +58,7 @@ reset:
 	out TIFR,temp
 	out TIMSK,temp
 
-	; Setting up sram
+	; Common setup for ripple effect sram
 
 	.dseg
 	lights: .byte 10
@@ -96,12 +97,8 @@ reset:
 	ldi temp,0b00000010 ; tenth
 	st Y+,temp
 
-	; tempary bit flip
-	clr temp2
-	ldi temp3,0x01
-
 	; Setting intial properites for process
-	; set up first process last so right stack is in place
+	; call first process last so right stack is in place
 	rcall send_out_portd_init
 	rcall send_out_init
 
@@ -123,15 +120,26 @@ scheduler: ; this is called by the timer interrupt
 	pop temp2
 
 	; going to correct place in this scheduler
-	ijmp ; going to value stored in last init
+	ijmp ; going to value stored in last setup
 
 	; actual scheduling
 	scheduler_entrance:
 
 	; first process
 	rcall send_out_setup
-	rcall scheduler_go_again
+	cpi temp3,0x00
+	breq first_process_finish
+	clr temp2
+	first_process_loop:
+		inc temp2
+		cp temp3,temp2
+		breq first_process_loop_end
+		ldi ZL,low(first_process_loop)
+		ldi ZH,high(first_process_loop)
+		reti
+	first_process_loop_end:
 	rcall send_out_cleanup
+	first_process_finish:
 
 	; second process
 	rcall send_out_portd_setup
@@ -208,6 +216,9 @@ send_out_setup:
 	pop ZH ; these will be for the scheduler
 	pop ZL
 
+	; setting priority
+	ldi temp3,0x02
+
 	; retrieve stack address
 	ldi YL,low(temp_stack_address)
 	ldi YH,high(temp_stack_address)
@@ -275,29 +286,7 @@ send_out:
 	ld led,Y
 	out PORTB,led
 
-	; wasting time
-	clr count1
-	clr count2
-	clr count3
-	
-	send_out_loop_1:
-		send_out_loop_2:
-			send_out_loop_3:
-				inc count3
-				cpi count3,0x00
-				breq send_out_loop_3_end
-				rjmp send_out_loop_3
-			send_out_loop_3_end:
-			inc count2
-			cpi count2,0x00
-			breq send_out_loop_2_end
-			rjmp send_out_loop_2
-		send_out_loop_2_end:
-		inc count1
-		cpi count1,0x01
-		breq send_out_loop_1_end
-		rjmp send_out_loop_1
-	send_out_loop_1_end:
+	rcall waste_time
 
 	; finding next offset
 	inc XL
@@ -436,29 +425,7 @@ send_out_portd:
 	ld led,Y
 	out PORTD,led
 
-	; wasting time
-	clr count1
-	clr count2
-	clr count3
-	
-	send_out_portd_loop_1:
-		send_out_portd_loop_2:
-			send_out_portd_loop_3:
-				inc count3
-				cpi count3,0x00
-				breq send_out_portd_loop_3_end
-				rjmp send_out_portd_loop_3
-			send_out_portd_loop_3_end:
-			inc count2
-			cpi count2,0x00
-			breq send_out_portd_loop_2_end
-			rjmp send_out_portd_loop_2
-		send_out_portd_loop_2_end:
-		inc count1
-		cpi count1,0x01
-		breq send_out_portd_loop_1_end
-		rjmp send_out_portd_loop_1
-	send_out_portd_loop_1_end:
+	rcall waste_time
 
 	; finding next offset
 	inc XL
@@ -466,5 +433,35 @@ send_out_portd:
 	brne send_out_portd
 	clr XL
 	rjmp send_out_portd
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Common waste time function
+
+waste_time:
+	; wasting time
+	clr count1
+	clr count2
+	clr count3
+	
+	waste_time_loop_1:
+		waste_time_loop_2:
+			waste_time_loop_3:
+				inc count3
+				cpi count3,0x00
+				breq waste_time_loop_3_end
+				rjmp waste_time_loop_3
+			waste_time_loop_3_end:
+			inc count2
+			cpi count2,0x00
+			breq waste_time_loop_2_end
+			rjmp waste_time_loop_2
+		waste_time_loop_2_end:
+		inc count1
+		cpi count1,0x01
+		breq waste_time_loop_1_end
+		rjmp waste_time_loop_1
+	waste_time_loop_1_end:
+
+	ret
 
 
