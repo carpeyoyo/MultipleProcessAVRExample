@@ -59,7 +59,7 @@ reset:
 	out TIMSK,temp
 
 	; Common setup for ripple effect sram
-
+	; This is shared among both processes
 	.dseg
 	lights: .byte 10
 	.cseg
@@ -126,9 +126,7 @@ scheduler: ; this is called by the timer interrupt
 	scheduler_entrance:
 
 	; first process
-	rcall send_out_setup
-	cpi temp3,0x00
-	breq first_process_finish
+	rcall send_out_setup ; temp3 is sent during this call
 	clr temp2
 	first_process_loop:
 		inc temp2
@@ -139,22 +137,24 @@ scheduler: ; this is called by the timer interrupt
 		reti
 	first_process_loop_end:
 	rcall send_out_cleanup
-	first_process_finish:
 
 	; second process
 	rcall send_out_portd_setup
+	clr temp2
+	second_process_loop:
+		inc temp2
+		cp temp3,temp2
+		breq second_process_loop_end
+		ldi ZL,low(second_process_loop)
+		ldi ZH,high(second_process_loop)
+		reti
+	second_process_loop_end:
 	rcall send_out_portd_cleanup
 
 	rjmp scheduler_entrance
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The following functions are for the the send out to port b process.
-
-scheduler_go_again:
-	pop ZH
-	pop ZL
-	reti
 
 send_out_init:
 
@@ -197,7 +197,7 @@ send_out_init:
 	push count2
 	push count3
 
-	; storing stack location
+	; storing stack pointer location
 	.dseg
 	temp_stack_address: .byte 2
 	.cseg
@@ -216,7 +216,7 @@ send_out_setup:
 	pop ZH ; these will be for the scheduler
 	pop ZL
 
-	; setting priority
+	; setting priority for scheduler
 	ldi temp3,0x02
 
 	; retrieve stack address
@@ -357,6 +357,9 @@ send_out_portd_init:
 send_out_portd_setup:
 	pop ZH ; these will be for the scheduler
 	pop ZL
+
+	; setting priority
+	ldi temp3,0x01
 
 	; retrieve stack address
 	ldi YL,low(temp_stack_portd_address)
