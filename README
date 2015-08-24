@@ -1,0 +1,18 @@
+Joshua Mazur
+
+Multiple Processes on an AVR micrcontroller project
+
+The web page for this project can be found at http://carpeyoyo.github.io/MultipleProcesses.html. The schematic diagram for this project can be found there. 
+
+This project was designed for the ATtiny4313 microcontroller. However, any AVR microcontroller with enough SRAM and memory should work.
+
+The project consists of the following files: 
+
+ripple.asm (included)
+	This is the main file where the code is for the scheduler, and the processes controlling port d and b are located. It is fairly well commented and should be easy to follow and modify. 
+
+makefile (included)
+	The makefile uses avra (AVR microcontroller assembler) and avrdude (Software for programming AVR microcontrollers). The commands I used to assemble and program the IC are included in this file. Also included is the fuse settings for the ATtiny4313 changed to run its internal clock at 8 MHz and brownout detection at 4.3 Volts according to the online fuse calculator that can be found at "http://www.engbedded.com/fusecalc/".
+
+tn4313def.inc (not included)
+	This is the manufacture's include file that comes with AVR studio. I did not include this file, but the assembly file uses information from it. Retrieving this file and placing it in the same directory as the rest of the project is necessary if avra is used to assemble the program. However, the assembler used by AVR studio should already have access to this file. 
