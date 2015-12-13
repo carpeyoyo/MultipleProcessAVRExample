@@ -2,7 +2,7 @@ Joshua Mazur
 
 Multiple Processes on an AVR micrcontroller project
 
-The web page for this project can be found at http://carpeyoyo.github.io/MultipleProcesses.html. The schematic diagram for this project can be found there. 
+The web page for this project can be found at http:http://carpeyoyo.github.io/MultipleProcesses/index.html. The schematic diagram for this project can be found there. 
 
 This project was designed for the ATtiny4313 microcontroller. However, any AVR microcontroller with enough SRAM and memory should work.
 
